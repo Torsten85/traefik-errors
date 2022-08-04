@@ -1,0 +1,35 @@
+version: "3.7"
+services:
+  app1:
+    build: .
+    environment:
+      NAME: app1
+    ports:
+      - "3000:3000"
+    labels:
+      - "traefik.enable=true"
+
+      - "traefik.http.middlewares.http-errors.errors.status=404"
+      - "traefik.http.middlewares.http-errors.errors.service=app2"
+      - "traefik.http.middlewares.http-errors.errors.query=/test"
+
+      - "traefik.http.routers.app1.rule=HostRegexp(`{host:.*}`)"
+      - "traefik.http.routers.app1.entrypoints=web"
+      - "traefik.http.routers.app1.middlewares=http-errors"
+  app2:
+    build: .
+    environment:
+      NAME: app2
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.app2.loadbalancer.server.port=3000"
+  traefik:
+    image: traefik:latest
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
